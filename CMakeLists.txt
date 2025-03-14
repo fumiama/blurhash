@@ -27,6 +27,9 @@ if (POLICY CMP0048)
 endif (POLICY CMP0048)
 project(blurhash VERSION 0.1.0)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast")
+
 add_executable(blurhash_b blurhash.c)
 
 add_library(blurhash   SHARED encode.c decode.c)
