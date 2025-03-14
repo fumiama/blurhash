@@ -21,7 +21,7 @@
  * SOFTWARE.
  */
 
-#include "decode.h"
+#include "blurhash.h"
 #include "common.h"
 
 static char chars[83] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
@@ -32,8 +32,8 @@ static inline uint8_t clampToUByte(int * src) {
 	return (*src < 0) ? 0 : 255;
 }
 
-static inline uint8_t *  createByteArray(int size) {
-	return (uint8_t *)malloc(size * sizeof(uint8_t));
+static inline pixel_array_t createByteArray(int size) {
+	return (pixel_array_t)malloc(size * sizeof(uint8_t));
 }
 
 int decodeToInt(const char * string, int start, int end) {
@@ -52,7 +52,7 @@ int decodeToInt(const char * string, int start, int end) {
 	return value;
 }
 
-bool isValidBlurhash(const char * blurhash) {
+bool blurhash_is_valid(const char * blurhash) {
 
 	const int hashLength = strlen(blurhash);
 
@@ -82,8 +82,8 @@ void decodeAC(int value, float maximumValue, float * r, float * g, float * b) {
 	*b = signPow(((float)quantB - 9) / 9, 2.0) * maximumValue;
 }
 
-int decodeToArray(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t * pixelArray) {
-	if (! isValidBlurhash(blurhash)) return -1;
+int blurhash_decode2(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t * pixelArray) {
+	if (! blurhash_is_valid(blurhash)) return -1;
 	if (punch < 1) punch = 1;
 
 	int sizeFlag = decodeToInt(blurhash, 0, 1);
@@ -155,16 +155,16 @@ int decodeToArray(const char * blurhash, int width, int height, int punch, int n
 	return 0;
 }
 
-uint8_t * decode(const char * blurhash, int width, int height, int punch, int nChannels) {
+pixel_array_t blurhash_decode(const char * blurhash, int width, int height, int punch, int nChannels) {
 	int bytesPerRow = width * nChannels;
-	uint8_t * pixelArray = createByteArray(bytesPerRow * height);
+	pixel_array_t pixelArray = createByteArray(bytesPerRow * height);
 
-	if (decodeToArray(blurhash, width, height, punch, nChannels, pixelArray) == -1)
+	if (blurhash_decode2(blurhash, width, height, punch, nChannels, pixelArray) == -1)
 		return NULL;
 	return pixelArray;
 }
 
-void freePixelArray(uint8_t * pixelArray) {
+void blurhash_free_pixel_array(pixel_array_t pixelArray) {
 	if (pixelArray) {
 		free(pixelArray);
 	}

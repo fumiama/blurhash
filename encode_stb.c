@@ -1,7 +1,7 @@
 #include <stb/stb_image.h>
 #include <stdio.h>
 
-#include "encode.h"
+#include "blurhash.h"
 
 const char *blurHashForFile(int xComponents, int yComponents,const char *filename);
 
@@ -34,7 +34,7 @@ const char *blurHashForFile(int xComponents, int yComponents,const char *filenam
 	unsigned char *data = stbi_load(filename, &width, &height, &channels, 3);
 	if(!data) return NULL;
 
-	const char *hash = blurHashForPixels(xComponents, yComponents, width, height, data, width * 3);
+	const char *hash = blurhash_encode(xComponents, yComponents, width, height, data, width * 3);
 
 	stbi_image_free(data);
 

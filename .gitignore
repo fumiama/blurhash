@@ -24,3 +24,6 @@ Python/build/
 # Website
 Website/node_modules/
 Website/dist/
+
+# VS Code stubs
+.vscode

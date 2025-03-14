@@ -1,7 +1,7 @@
 #include <stb/stb_image_write.h>
 #include <stdio.h>
 
-#include "decode.h"
+#include "blurhash.h"
 
 int main(int argc, char **argv) {
 	if(argc < 5) {
@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
 	if(argc == 6)
 		punch = atoi(argv[5]);
 
-	uint8_t * bytes = decode(hash, width, height, punch, nChannels);
+	pixel_array_t bytes = blurhash_decode(hash, width, height, punch, nChannels);
 
 	if (!bytes) {
 		fprintf(stderr, "%s is not a valid blurhash, decoding failed.\n", hash);
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	freePixelArray(bytes);
+	blurhash_free_pixel_array(bytes);
 
 	fprintf(stdout, "Decoded blurhash successfully, wrote PNG file %s\n", output_file);
 	return 0;

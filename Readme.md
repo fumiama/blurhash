@@ -25,7 +25,7 @@ Include the `encode.c` and `encode.h` files in your project. They have no extern
 
 A single file function is defined:
 
-    const char *blurHashForPixels(int xComponents, int yComponents, int width, int height, uint8_t *rgb, size_t bytesPerRow) {
+    const char *blurhash_encode(int xComponents, int yComponents, int width, int height, uint8_t *rgb, size_t bytesPerRow) {
 
 This function returns a string containing the BlurHash. This memory is managed by the function, and you should not free it.
 It will be overwritten on the next call into the function, so be careful!
