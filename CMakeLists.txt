@@ -29,8 +29,8 @@ project(blurhash VERSION 0.1.0)
 
 add_executable(blurhash_b blurhash.c)
 
-add_library(blurhash   SHARED encode.c decode.c math)
-add_library(blurhash_s STATIC encode.c decode.c math)
+add_library(blurhash   SHARED encode.c decode.c m)
+add_library(blurhash_s STATIC encode.c decode.c m)
 
 set_target_properties(blurhash_b PROPERTIES OUTPUT_NAME blurhash)
 set_target_properties(blurhash_s PROPERTIES OUTPUT_NAME blurhash)
