@@ -37,8 +37,8 @@ set_target_properties(blurhash_s PROPERTIES OUTPUT_NAME blurhash)
 set_target_properties(blurhash   PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 message(STATUS "Linking libraries...")
-target_link_libraries(blurhash_s m)
-target_link_libraries(blurhash   m)
+target_link_libraries(blurhash_s stb m)
+target_link_libraries(blurhash   stb m)
 target_link_libraries(blurhash_b blurhash_s)
 
 INSTALL(TARGETS blurhash_b RUNTIME DESTINATION bin)
