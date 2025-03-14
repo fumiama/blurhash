@@ -17,7 +17,7 @@ int main(int argc, const char **argv) {
 	}
 
     switch (argv[1][0]) {
-        case 'e':
+        case 'e': {
             int xComponents = atoi(argv[2]);
             int yComponents = atoi(argv[3]);
             if(xComponents < 1 || xComponents > 8 || yComponents < 1 || yComponents > 8) {
@@ -32,19 +32,20 @@ int main(int argc, const char **argv) {
             }
 
             printf("%s\n", hash);
+        }
         break;
-        case 'd':
+        case 'd': {
             if(argc < 6) {
                 print_usage(argv[0]);
                 return 1;
             }
 
             int width, height, punch = 1;
-            char * hash = argv[2];
+            const char * hash = argv[2];
             width = atoi(argv[3]);
             height = atoi(argv[4]);
-            char * output_file = argv[5];
-        
+            const char * output_file = argv[5];
+
             const int nChannels = 4;
         
             if(argc == 7)
@@ -53,6 +54,7 @@ int main(int argc, const char **argv) {
             if (blurhash_decode_file(hash, width, height, punch, nChannels, output_file)) {
                 perror("blurhash_decode_file");
             }
+        }
         break;
         default:
             print_usage(argv[0]);

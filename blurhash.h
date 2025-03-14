@@ -86,7 +86,7 @@ static inline pixel_array_t blurhash_create_pixel_array(int size) {
 		pixelArray : Pixel array pointer which will be freed.
 	Returns : void (None)
 */
-static inline blurhash_free_pixel_array(pixel_array_t pixelArray) {
+static inline void blurhash_free_pixel_array(pixel_array_t pixelArray) {
 	if (pixelArray) {
 		free(pixelArray);
 	}
