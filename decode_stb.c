@@ -1,7 +1,7 @@
-#include "decode.h"
+#include <stb/stb_image_write.h>
+#include <stdio.h>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_writer.h"
+#include "decode.h"
 
 int main(int argc, char **argv) {
 	if(argc < 5) {

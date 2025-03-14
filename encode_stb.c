@@ -1,9 +1,7 @@
-#include "encode.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
+#include <stb/stb_image.h>
 #include <stdio.h>
+
+#include "encode.h"
 
 const char *blurHashForFile(int xComponents, int yComponents,const char *filename);
 
