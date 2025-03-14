@@ -1,6 +1,6 @@
 /* decode.c
  * This file is part of the blurhash distribution (https://github.com/woltapp/blurhash).
- * Copyright (c) 2018 Wolt Enterprises.
+ * Copyright (c) 2018 Wolt Enterprises and Copyright (c) 2025 Fumiama Minamoto.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,32 +24,10 @@
 #include "blurhash.h"
 #include "common.h"
 
-static char chars[83] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
-
-static inline uint8_t clampToUByte(int * src) {
-	if( *src >= 0 && *src <= 255 )
-		return *src;
-	return (*src < 0) ? 0 : 255;
-}
-
-static inline pixel_array_t createByteArray(int size) {
-	return (pixel_array_t)malloc(size * sizeof(uint8_t));
-}
-
-int decodeToInt(const char * string, int start, int end) {
-	int value = 0, iter1 = 0, iter2 = 0;
-	for( iter1 = start; iter1 < end; iter1 ++) {
-		int index = -1;
-		for(iter2 = 0; iter2 < 83; iter2 ++) {
-			if (chars[iter2] == string[iter1]) {
-				index = iter2;
-				break;
-			}
-		}
-		if (index == -1) return -1;
-		value = value * 83 + index;
-	}
-	return value;
+static inline uint8_t blurhash_clampToUByte(int s) {
+	if (s < 0) return 0;
+	if (s>>8) return 255;
+	return (uint8_t)s;
 }
 
 bool blurhash_is_valid(const char * blurhash) {
@@ -58,7 +36,7 @@ bool blurhash_is_valid(const char * blurhash) {
 
 	if ( !blurhash || strlen(blurhash) < 6) return false;
 
-	int sizeFlag = decodeToInt(blurhash, 0, 1);	//Get size from first character
+	int sizeFlag = blurhash_base83_decode_int(blurhash, 0, 1);	//Get size from first character
 	int numY = (int)floorf(sizeFlag / 9) + 1;
 	int numX = (sizeFlag % 9) + 1;
 
@@ -67,9 +45,9 @@ bool blurhash_is_valid(const char * blurhash) {
 }
 
 void decodeDC(int value, float * r, float * g, float * b) {
-	*r = sRGBToLinear(value >> 16); 	// R-component
-	*g = sRGBToLinear((value >> 8) & 255); // G-Component
-	*b = sRGBToLinear(value & 255);	// B-Component
+	*r = blurhash_sRGBToLinear(value >> 16); 	// R-component
+	*g = blurhash_sRGBToLinear((value >> 8) & 255); // G-Component
+	*b = blurhash_sRGBToLinear(value & 255);	// B-Component
 }
 
 void decodeAC(int value, float maximumValue, float * r, float * g, float * b) {
@@ -77,22 +55,22 @@ void decodeAC(int value, float maximumValue, float * r, float * g, float * b) {
 	int quantG = (int)floorf(value / 19) % 19;
 	int quantB = (int)value % 19;
 
-	*r = signPow(((float)quantR - 9) / 9, 2.0) * maximumValue;
-	*g = signPow(((float)quantG - 9) / 9, 2.0) * maximumValue;
-	*b = signPow(((float)quantB - 9) / 9, 2.0) * maximumValue;
+	*r = blurhash_signPow(((float)quantR - 9) / 9, 2.0) * maximumValue;
+	*g = blurhash_signPow(((float)quantG - 9) / 9, 2.0) * maximumValue;
+	*b = blurhash_signPow(((float)quantB - 9) / 9, 2.0) * maximumValue;
 }
 
 int blurhash_decode2(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t * pixelArray) {
 	if (! blurhash_is_valid(blurhash)) return -1;
 	if (punch < 1) punch = 1;
 
-	int sizeFlag = decodeToInt(blurhash, 0, 1);
+	int sizeFlag = blurhash_base83_decode_int(blurhash, 0, 1);
 	int numY = (int)floorf(sizeFlag / 9) + 1;
 	int numX = (sizeFlag % 9) + 1;
 	int iter = 0;
 
 	float r = 0, g = 0, b = 0;
-	int quantizedMaxValue = decodeToInt(blurhash, 1, 2);
+	int quantizedMaxValue = blurhash_base83_decode_int(blurhash, 1, 2);
 	if (quantizedMaxValue == -1) return -1;
 
 	float maxValue = ((float)(quantizedMaxValue + 1)) / 166;
@@ -102,7 +80,7 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 
 	for(iter = 0; iter < colors_size; iter ++) {
 		if (iter == 0) {
-			int value = decodeToInt(blurhash, 2, 6);
+			int value = blurhash_base83_decode_int(blurhash, 2, 6);
 			if (value == -1) return -1;
 			decodeDC(value, &r, &g, &b);
 			colors[iter][0] = r;
@@ -110,7 +88,7 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 			colors[iter][2] = b;
 
 		} else {
-			int value = decodeToInt(blurhash, 4 + iter * 2, 6 + iter * 2);
+			int value = blurhash_base83_decode_int(blurhash, 4 + iter * 2, 6 + iter * 2);
 			if (value == -1) return -1;
 			decodeAC(value, maxValue * punch, &r, &g, &b);
 			colors[iter][0] = r;
@@ -138,13 +116,9 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 				}
 			}
 
-			intR = linearTosRGB(r);
-			intG = linearTosRGB(g);
-			intB = linearTosRGB(b);
-
-			pixelArray[nChannels * x + 0 + y * bytesPerRow] = clampToUByte(&intR);
-			pixelArray[nChannels * x + 1 + y * bytesPerRow] = clampToUByte(&intG);
-			pixelArray[nChannels * x + 2 + y * bytesPerRow] = clampToUByte(&intB);
+			pixelArray[nChannels * x + 0 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(r));
+			pixelArray[nChannels * x + 1 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(g));
+			pixelArray[nChannels * x + 2 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(b));
 
 			if (nChannels == 4)
 				pixelArray[nChannels * x + 3 + y * bytesPerRow] = 255;   // If nChannels=4, treat each pixel as RGBA instead of RGB
@@ -157,15 +131,9 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 
 pixel_array_t blurhash_decode(const char * blurhash, int width, int height, int punch, int nChannels) {
 	int bytesPerRow = width * nChannels;
-	pixel_array_t pixelArray = createByteArray(bytesPerRow * height);
+	pixel_array_t pixelArray = blurhash_create_pixel_array(bytesPerRow * height);
 
 	if (blurhash_decode2(blurhash, width, height, punch, nChannels, pixelArray) == -1)
 		return NULL;
 	return pixelArray;
-}
-
-void blurhash_free_pixel_array(pixel_array_t pixelArray) {
-	if (pixelArray) {
-		free(pixelArray);
-	}
 }

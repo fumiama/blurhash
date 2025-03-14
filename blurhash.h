@@ -70,7 +70,12 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 		blurhash : A string representing the blurhash
 	Returns : bool (true if it is a valid blurhash, else false)
 */
-bool blurhash_is_valid(const char * blurhash); 
+bool blurhash_is_valid(const char * blurhash);
+
+// blurhash_create_pixel_array malloc size bytes uint8_t array.
+static inline pixel_array_t blurhash_create_pixel_array(int size) {
+	return (pixel_array_t)malloc(size * sizeof(uint8_t));
+}
 
 /*
 	blurhash_free_pixel_array : Frees the pixel array
@@ -78,6 +83,10 @@ bool blurhash_is_valid(const char * blurhash);
 		pixelArray : Pixel array pointer which will be freed.
 	Returns : void (None)
 */
-void blurhash_free_pixel_array(pixel_array_t pixelArray);
+void blurhash_free_pixel_array(pixel_array_t pixelArray) {
+	if (pixelArray) {
+		free(pixelArray);
+	}
+}
 
 #endif

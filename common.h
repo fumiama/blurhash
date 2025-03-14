@@ -3,7 +3,7 @@
 
 /* common.h
  * This file is part of the blurhash distribution (https://github.com/woltapp/blurhash).
- * Copyright (c) 2018 Wolt Enterprises.
+ * Copyright (c) 2018 Wolt Enterprises and Copyright (c) 2025 Fumiama Minamoto.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,19 +30,49 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-static inline int linearTosRGB(float value) {
+static char blurhash_base83_table[83]="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
+
+static inline char *blurhash_base83_encode_int(int value, int length, char *destination) {
+	int divisor = 1;
+	for(int i = 0; i < length - 1; i++) divisor *= 83;
+
+	for(int i = 0; i < length; i++) {
+		int digit = (value / divisor) % 83;
+		divisor /= 83;
+		*destination++ = blurhash_base83_table[digit];
+	}
+	return destination;
+}
+
+static inline int blurhash_base83_decode_int(const char * string, int start, int end) {
+	int value = 0, iter1 = 0, iter2 = 0;
+	for( iter1 = start; iter1 < end; iter1 ++) {
+		int index = -1;
+		for(iter2 = 0; iter2 < 83; iter2 ++) {
+			if (blurhash_base83_table[iter2] == string[iter1]) {
+				index = iter2;
+				break;
+			}
+		}
+		if (index == -1) return -1;
+		value = value * 83 + index;
+	}
+	return value;
+}
+
+static inline int blurhash_linearTosRGB(float value) {
 	float v = fmaxf(0, fminf(1, value));
 	if(v <= 0.0031308) return v * 12.92 * 255 + 0.5;
 	else return (1.055 * powf(v, 1 / 2.4) - 0.055) * 255 + 0.5;
 }
 
-static inline float sRGBToLinear(int value) {
+static inline float blurhash_sRGBToLinear(int value) {
 	float v = (float)value / 255;
 	if(v <= 0.04045) return v / 12.92;
 	else return powf((v + 0.055) / 1.055, 2.4);
 }
 
-static inline float signPow(float value, float exp) {
+static inline float blurhash_signPow(float value, float exp) {
 	return copysignf(powf(fabsf(value), exp), value);
 }
 

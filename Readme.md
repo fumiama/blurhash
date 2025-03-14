@@ -4,7 +4,8 @@ BlurHash is a compact representation of a placeholder for an image.
 
 ## Instruction
 
-This is a Debian package binding of [the original repo](https://github.com/woltapp/blurhash).
+This is a Debian package binding of [the original repo](https://github.com/woltapp/blurhash) with
+some optimizations and sanitizations.
 
 ## How does it work?
 
