@@ -1,5 +1,4 @@
 #ifndef __BLURHASH_BLURHASH_H__
-
 #define __BLURHASH_BLURHASH_H__
 
 /* blurhash.h
@@ -35,6 +34,8 @@
 // function blurhash_free_pixel_array
 typedef uint8_t* pixel_array_t;
 
+const char *blurhash_encode_file(int xComponents, int yComponents, const char *filename);
+
 const char *blurhash_encode(int xComponents, int yComponents, int width, int height, uint8_t *rgb, size_t bytesPerRow);
 
 /*
@@ -64,6 +65,8 @@ pixel_array_t blurhash_decode(const char * blurhash, int width, int height, int 
 */
 int blurhash_decode2(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t * pixelArray);
 
+int blurhash_decode_file(const char* hash, int width, int height, int punch, int nChannels, const char *filename);
+
 /*
 	blurhash_is_valid : Checks if the Blurhash is valid or not.
 	Parameters :
@@ -83,7 +86,7 @@ static inline pixel_array_t blurhash_create_pixel_array(int size) {
 		pixelArray : Pixel array pointer which will be freed.
 	Returns : void (None)
 */
-void blurhash_free_pixel_array(pixel_array_t pixelArray) {
+static inline blurhash_free_pixel_array(pixel_array_t pixelArray) {
 	if (pixelArray) {
 		free(pixelArray);
 	}

@@ -21,10 +21,11 @@
  * SOFTWARE.
  */
 
+#include <stb/stb_image.h>
+#include <string.h>
+
 #include "blurhash.h"
 #include "common.h"
-
-#include <string.h>
 
 static float *multiplyBasisFunction(int xComponent, int yComponent, int width, int height, uint8_t *rgb, size_t bytesPerRow);
 
@@ -106,8 +107,6 @@ static float *multiplyBasisFunction(int xComponent, int yComponent, int width, i
 	return result;
 }
 
-
-
 static int encodeDC(float r, float g, float b) {
 	int roundedR = blurhash_linearTosRGB(r);
 	int roundedG = blurhash_linearTosRGB(g);
@@ -121,4 +120,16 @@ static int encodeAC(float r, float g, float b, float maximumValue) {
 	int quantB = fmaxf(0, fminf(18, floorf(blurhash_signPow(b / maximumValue, 0.5) * 9 + 9.5)));
 
 	return quantR * 19 * 19 + quantG * 19 + quantB;
+}
+
+const char *blurhash_encode_file(int xComponents, int yComponents, const char *filename) {
+	int width, height, channels;
+	unsigned char *data = stbi_load(filename, &width, &height, &channels, 3);
+	if(!data) return NULL;
+
+	const char *hash = blurhash_encode(xComponents, yComponents, width, height, data, width * 3);
+
+	stbi_image_free(data);
+
+	return hash;
 }

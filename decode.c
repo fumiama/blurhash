@@ -21,6 +21,8 @@
  * SOFTWARE.
  */
 
+#include <stb/stb_image_write.h>
+
 #include "blurhash.h"
 #include "common.h"
 
@@ -136,4 +138,17 @@ pixel_array_t blurhash_decode(const char * blurhash, int width, int height, int 
 	if (blurhash_decode2(blurhash, width, height, punch, nChannels, pixelArray) == -1)
 		return NULL;
 	return pixelArray;
+}
+
+int blurhash_decode_file(const char* hash, int width, int height, int punch, int nChannels, const char *filename) {
+	pixel_array_t bytes = blurhash_decode(hash, width, height, punch, nChannels);
+
+	if (!bytes) return -1;
+
+	if (stbi_write_png(filename, width, height, nChannels, bytes, nChannels * width) == 0)
+		return -2;
+
+	blurhash_free_pixel_array(bytes);
+
+	return 0;
 }
