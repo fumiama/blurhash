@@ -27,3 +27,6 @@ Website/dist/
 
 # VS Code stubs
 .vscode
+
+# CMake build
+/build
