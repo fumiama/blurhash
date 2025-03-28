@@ -27,6 +27,9 @@ if (POLICY CMP0048)
 endif (POLICY CMP0048)
 project(blurhash VERSION 0.1.0)
 
+add_definitions(-DBLURHASH_VERSION="${PROJECT_VERSION}")
+add_definitions(-DBLURHASH_VERSION_DATE="May 28th 2025")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast")
 

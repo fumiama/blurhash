@@ -25,18 +25,29 @@
 
 #include "blurhash.h"
 
-static int print_usage(const char* cmd) {
-    fprintf(stderr,
-        "Usage: %s [e|d]\n"
-        "  e(encode): x_components y_components imagefile\n"
-        "  d(decode): hash width height output_file [punch]\n"
-    , cmd);
+static void print_usage() {
+	#ifndef BLURHASH_VERSION
+		#define BLURHASH_VERSION "dev"
+	#endif
+	#ifndef BLURHASH_VERSION_DATE
+		#define BLURHASH_VERSION_DATE "unknown date"
+	#endif
+	fputs(
+		"Copyright (c) 2018 Wolt Enterprises and Copyright (c) 2025 Fumiama Minamoto.\nBlurhash "
+		BLURHASH_VERSION
+		" ("
+			BLURHASH_VERSION_DATE
+		"). Usage:\n", stderr
+	);
+	fputs("blurhash [e|d]\n", stderr);
+	fputs("  e(encode): x_components y_components imagefile\n", stderr);
+	fputs("  d(decode): hash width height output_file [punch]\n", stderr);
 }
 
 int main(int argc, const char **argv) {
 	if(argc < 5) {
-		print_usage(argv[0]);
-		return 1;
+		print_usage();
+		return -1;
 	}
 
     switch (argv[1][0]) {
@@ -56,8 +67,8 @@ int main(int argc, const char **argv) {
         break;
         case 'd': {
             if(argc < 6) {
-                print_usage(argv[0]);
-                return 1;
+                print_usage();
+                return -1;
             }
 
             int width, height, punch = 1;
@@ -84,8 +95,8 @@ int main(int argc, const char **argv) {
         }
         break;
         default:
-            print_usage(argv[0]);
-            return 1;
+            print_usage();
+            return -1;
         break;
     }
 
