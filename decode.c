@@ -21,6 +21,7 @@
  * SOFTWARE.
  */
 
+#include <errno.h>
 #include <stb/stb_image_write.h>
 
 #include "blurhash.h"
@@ -62,8 +63,11 @@ static void decodeAC(int value, float maximumValue, float * r, float * g, float 
 	*b = blurhash_signPow(((float)quantB - 9) / 9, 2.0) * maximumValue;
 }
 
-int blurhash_decode2(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t * pixelArray) {
-	if (! blurhash_is_valid(blurhash)) return -1;
+blurhash_error_t blurhash_decode(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t* buffer) {
+	if (! blurhash_is_valid(blurhash)) {
+		errno = EINVAL;
+		return blurhash_error_invalid_hash;
+	}
 	if (punch < 1) punch = 1;
 
 	int sizeFlag = blurhash_base83_decode_int(blurhash, 0, 1);
@@ -73,7 +77,10 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 
 	float r = 0, g = 0, b = 0;
 	int quantizedMaxValue = blurhash_base83_decode_int(blurhash, 1, 2);
-	if (quantizedMaxValue == -1) return -1;
+	if (quantizedMaxValue == -1) {
+		errno = EINVAL;
+		return blurhash_error_invalid_decode_quantized_max_value;
+	}
 
 	float maxValue = ((float)(quantizedMaxValue + 1)) / 166;
 
@@ -83,7 +90,10 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 	for(iter = 0; iter < colors_size; iter ++) {
 		if (iter == 0) {
 			int value = blurhash_base83_decode_int(blurhash, 2, 6);
-			if (value == -1) return -1;
+			if (value == -1) {
+				errno = EINVAL;
+				return blurhash_error_invalid_decode_dc;
+			}
 			decodeDC(value, &r, &g, &b);
 			colors[iter][0] = r;
 			colors[iter][1] = g;
@@ -91,7 +101,10 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 
 		} else {
 			int value = blurhash_base83_decode_int(blurhash, 4 + iter * 2, 6 + iter * 2);
-			if (value == -1) return -1;
+			if (value == -1) {
+				errno = EINVAL;
+				return blurhash_error_invalid_decode_ac;
+			}
 			decodeAC(value, maxValue * punch, &r, &g, &b);
 			colors[iter][0] = r;
 			colors[iter][1] = g;
@@ -118,37 +131,25 @@ int blurhash_decode2(const char * blurhash, int width, int height, int punch, in
 				}
 			}
 
-			pixelArray[nChannels * x + 0 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(r));
-			pixelArray[nChannels * x + 1 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(g));
-			pixelArray[nChannels * x + 2 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(b));
+			buffer[nChannels * x + 0 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(r));
+			buffer[nChannels * x + 1 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(g));
+			buffer[nChannels * x + 2 + y * bytesPerRow] = blurhash_clampToUByte(blurhash_linearTosRGB(b));
 
 			if (nChannels == 4)
-				pixelArray[nChannels * x + 3 + y * bytesPerRow] = 255;   // If nChannels=4, treat each pixel as RGBA instead of RGB
+				buffer[nChannels * x + 3 + y * bytesPerRow] = 255;   // If nChannels=4, treat each pixel as RGBA instead of RGB
 
 		}
 	}
 
-	return 0;
+	return blurhash_error_ok;
 }
 
-pixel_array_t blurhash_decode(const char * blurhash, int width, int height, int punch, int nChannels) {
-	int bytesPerRow = width * nChannels;
-	pixel_array_t pixelArray = blurhash_create_pixel_array(bytesPerRow * height);
+blurhash_error_t blurhash_decode_file(const char* blurhash, int width, int height, int punch, int nChannels, const char *filename, uint8_t* buffer) {
+	blurhash_error_t err = blurhash_decode(blurhash, width, height, punch, nChannels, buffer);
+	if (err) return err;
 
-	if (blurhash_decode2(blurhash, width, height, punch, nChannels, pixelArray) == -1)
-		return NULL;
-	return pixelArray;
-}
+	if (stbi_write_png(filename, width, height, nChannels, buffer, nChannels * width) == 0)
+		return blurhash_error_stbi_write_png;
 
-int blurhash_decode_file(const char* hash, int width, int height, int punch, int nChannels, const char *filename) {
-	pixel_array_t bytes = blurhash_decode(hash, width, height, punch, nChannels);
-
-	if (!bytes) return -1;
-
-	if (stbi_write_png(filename, width, height, nChannels, bytes, nChannels * width) == 0)
-		return -2;
-
-	blurhash_free_pixel_array(bytes);
-
-	return 0;
+	return blurhash_error_ok;
 }

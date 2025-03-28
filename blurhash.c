@@ -43,18 +43,15 @@ int main(int argc, const char **argv) {
         case 'e': {
             int xComponents = atoi(argv[2]);
             int yComponents = atoi(argv[3]);
-            if(xComponents < 1 || xComponents > 8 || yComponents < 1 || yComponents > 8) {
-                fprintf(stderr, "Component counts must be between 1 and 8.\n");
-                return 1;
+            char hash[BLURHASH_ENCODE_BUFSZ];
+
+            blurhash_error_t err = blurhash_encode_file(xComponents, yComponents, argv[4], hash);
+            if(err) {
+                blurhash_perror(err);
+                return err;
             }
 
-            const char *hash = blurhash_encode_file(xComponents, yComponents, argv[4]);
-            if(!hash) {
-                fprintf(stderr, "Failed to load image file \"%s\".\n", argv[4]);
-                return 1;
-            }
-
-            printf("%s\n", hash);
+            puts(hash);
         }
         break;
         case 'd': {
@@ -73,9 +70,16 @@ int main(int argc, const char **argv) {
         
             if(argc == 7)
                 punch = atoi(argv[6]);
+            
+            uint8_t* buffer = (uint8_t *)malloc(BLURHASH_DECODE_BUFSZ(width, height, nChannels));
 
-            if (blurhash_decode_file(hash, width, height, punch, nChannels, output_file)) {
-                perror("blurhash_decode_file");
+            blurhash_error_t err = blurhash_decode_file(hash, width, height, punch, nChannels, output_file, buffer);
+
+            free(buffer);
+
+            if (err) {
+                blurhash_perror(err);
+                return err;
             }
         }
         break;

@@ -21,29 +21,70 @@
  * SOFTWARE.
  */
 
+#include <errno.h>
 #include <stb/stb_image.h>
 #include <string.h>
 
 #include "blurhash.h"
 #include "common.h"
 
-static float *multiplyBasisFunction(int xComponent, int yComponent, int width, int height, uint8_t *rgb, size_t bytesPerRow);
+static inline float *multiplyBasisFunction(int xComponent, int yComponent, int width, int height, const uint8_t *rgb) {
+	float r = 0, g = 0, b = 0;
+	float normalisation = (xComponent == 0 && yComponent == 0) ? 1 : 2;
+	int bytesPerRow = width * 3; // rgb
 
-static int encodeDC(float r, float g, float b);
-static int encodeAC(float r, float g, float b, float maximumValue);
+	for(int y = 0; y < height; y++) {
+		for(int x = 0; x < width; x++) {
+			float basis = cosf(M_PI * xComponent * x / width) * cosf(M_PI * yComponent * y / height);
+			r += basis * blurhash_sRGBToLinear(rgb[3 * x + 0 + y * bytesPerRow]);
+			g += basis * blurhash_sRGBToLinear(rgb[3 * x + 1 + y * bytesPerRow]);
+			b += basis * blurhash_sRGBToLinear(rgb[3 * x + 2 + y * bytesPerRow]);
+		}
+	}
 
-const char *blurhash_encode(int xComponents, int yComponents, int width, int height, uint8_t *rgb, size_t bytesPerRow) {
-	static char buffer[2 + 4 + (9 * 9 - 1) * 2 + 1]; // TODO: replace thread-unsafe buffer
+	float scale = normalisation / (width * height);
 
-	if(xComponents < 1 || xComponents > 9) return NULL;
-	if(yComponents < 1 || yComponents > 9) return NULL;
+	static float result[3];
+	result[0] = r * scale;
+	result[1] = g * scale;
+	result[2] = b * scale;
+
+	return result;
+}
+
+static inline int encodeDC(float r, float g, float b) {
+	int roundedR = blurhash_linearTosRGB(r);
+	int roundedG = blurhash_linearTosRGB(g);
+	int roundedB = blurhash_linearTosRGB(b);
+	return (roundedR << 16) + (roundedG << 8) + roundedB;
+}
+
+static inline int encodeAC(float r, float g, float b, float maximumValue) {
+	int quantR = fmaxf(0, fminf(18, floorf(blurhash_signPow(r / maximumValue, 0.5) * 9 + 9.5)));
+	int quantG = fmaxf(0, fminf(18, floorf(blurhash_signPow(g / maximumValue, 0.5) * 9 + 9.5)));
+	int quantB = fmaxf(0, fminf(18, floorf(blurhash_signPow(b / maximumValue, 0.5) * 9 + 9.5)));
+
+	return quantR * 19 * 19 + quantG * 19 + quantB;
+}
+
+// blurhash_encode: buffer must larger than BLURHASH_ENCODE_BUFSZ
+blurhash_error_t blurhash_encode(int xComponents, int yComponents, int width, int height, const uint8_t *rgb, char* buffer) {
+
+	if(xComponents < 1 || xComponents > 9) {
+		errno = EINVAL;
+		return blurhash_error_invalid_x_components;
+	}
+	if(yComponents < 1 || yComponents > 9) {
+		errno = EINVAL;
+		return blurhash_error_invalid_y_components;
+	}
 
 	float factors[yComponents][xComponents][3];
 	memset(factors, 0, sizeof(factors));
 
 	for(int y = 0; y < yComponents; y++) {
 		for(int x = 0; x < xComponents; x++) {
-			float *factor = multiplyBasisFunction(x, y, width, height, rgb, bytesPerRow);
+			float *factor = multiplyBasisFunction(x, y, width, height, rgb);
 			factors[y][x][0] = factor[0];
 			factors[y][x][1] = factor[1];
 			factors[y][x][2] = factor[2];
@@ -81,55 +122,17 @@ const char *blurhash_encode(int xComponents, int yComponents, int width, int hei
 
 	*ptr = 0;
 
-	return buffer;
+	return blurhash_error_ok;
 }
 
-static float *multiplyBasisFunction(int xComponent, int yComponent, int width, int height, uint8_t *rgb, size_t bytesPerRow) {
-	float r = 0, g = 0, b = 0;
-	float normalisation = (xComponent == 0 && yComponent == 0) ? 1 : 2;
-
-	for(int y = 0; y < height; y++) {
-		for(int x = 0; x < width; x++) {
-			float basis = cosf(M_PI * xComponent * x / width) * cosf(M_PI * yComponent * y / height);
-			r += basis * blurhash_sRGBToLinear(rgb[3 * x + 0 + y * bytesPerRow]);
-			g += basis * blurhash_sRGBToLinear(rgb[3 * x + 1 + y * bytesPerRow]);
-			b += basis * blurhash_sRGBToLinear(rgb[3 * x + 2 + y * bytesPerRow]);
-		}
-	}
-
-	float scale = normalisation / (width * height);
-
-	static float result[3];
-	result[0] = r * scale;
-	result[1] = g * scale;
-	result[2] = b * scale;
-
-	return result;
-}
-
-static int encodeDC(float r, float g, float b) {
-	int roundedR = blurhash_linearTosRGB(r);
-	int roundedG = blurhash_linearTosRGB(g);
-	int roundedB = blurhash_linearTosRGB(b);
-	return (roundedR << 16) + (roundedG << 8) + roundedB;
-}
-
-static int encodeAC(float r, float g, float b, float maximumValue) {
-	int quantR = fmaxf(0, fminf(18, floorf(blurhash_signPow(r / maximumValue, 0.5) * 9 + 9.5)));
-	int quantG = fmaxf(0, fminf(18, floorf(blurhash_signPow(g / maximumValue, 0.5) * 9 + 9.5)));
-	int quantB = fmaxf(0, fminf(18, floorf(blurhash_signPow(b / maximumValue, 0.5) * 9 + 9.5)));
-
-	return quantR * 19 * 19 + quantG * 19 + quantB;
-}
-
-const char *blurhash_encode_file(int xComponents, int yComponents, const char *filename) {
+blurhash_error_t blurhash_encode_file(int xComponents, int yComponents, const char *filename, char* buffer) {
 	int width, height, channels;
 	unsigned char *data = stbi_load(filename, &width, &height, &channels, 3);
-	if(!data) return NULL;
+	if(!data) return blurhash_error_stbi_load;
 
-	const char *hash = blurhash_encode(xComponents, yComponents, width, height, data, width * 3);
+	blurhash_error_t err = blurhash_encode(xComponents, yComponents, width, height, data, buffer);
 
 	stbi_image_free(data);
 
-	return hash;
+	return err;
 }

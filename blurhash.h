@@ -26,70 +26,107 @@
 
 #include <math.h>
 #include <stdbool.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
-// pixel_array_t means this array need to be freed by caller using
-// function blurhash_free_pixel_array
-typedef uint8_t* pixel_array_t;
 
-const char *blurhash_encode_file(int xComponents, int yComponents, const char *filename);
+enum blurhash_error_t {
+	blurhash_error_ok,
+	blurhash_error_invalid_x_components,
+	blurhash_error_invalid_y_components,
+	blurhash_error_stbi_load,
+	blurhash_error_invalid_hash,
+	blurhash_error_invalid_decode_quantized_max_value,
+	blurhash_error_invalid_decode_dc,
+	blurhash_error_invalid_decode_ac,
+	blurhash_error_stbi_write_png
+};
+typedef enum blurhash_error_t blurhash_error_t;
 
-const char *blurhash_encode(int xComponents, int yComponents, int width, int height, uint8_t *rgb, size_t bytesPerRow);
+// BLURHASH_ENCODE_BUFSZ defines maximum buffer size for hash
+#define BLURHASH_ENCODE_BUFSZ (2 + 4 + (9 * 9 - 1) * 2 + 1)
 
-/*
-	blurhash_decode : Returns the pixel array of the result image given the blurhash string,
-	Parameters : 
-		blurhash : A string representing the blurhash to be decoded.
-		width : Width of the resulting image
-		height : Height of the resulting image
-		punch : The factor to improve the contrast, default = 1
-		nChannels : Number of channels in the resulting image array, 3 = RGB, 4 = RGBA
-	Returns : A pointer to memory region where pixels are stored in (H, W, C) format
+// BLURHASH_ENCODE_BUFSZ defines maximum buffer size for image buffer
+#define BLURHASH_DECODE_BUFSZ(width, height, nChannels) (width * height * nChannels)
+
+
+/**
+ * @brief encodes blurhash from filename to buffer.
+ * @param xComponents range [1, 9]
+ * @param yComponents range [1, 9]
+ * @param filename valid file path
+ * @param buffer must >= `BLURHASH_ENCODE_BUFSZ`
+ * @return success is `0`, print others by `blurhash_perror`
 */
-pixel_array_t blurhash_decode(const char * blurhash, int width, int height, int punch, int nChannels);
+blurhash_error_t blurhash_encode_file(int xComponents, int yComponents, const char *filename, char* buffer);
 
-/*
-	blurhash_decode2 : Decodes the blurhash and copies the pixels to pixelArray,
-					This method is suggested if you use an external memory allocator for pixelArray.
-					pixelArray should be of size : width * height * nChannels
-	Parameters :
-		blurhash : A string representing the blurhash to be decoded.
-		width : Width of the resulting image
-		height : Height of the resulting image
-		punch : The factor to improve the contrast, default = 1
-		nChannels : Number of channels in the resulting image array, 3 = RGB, 4 = RGBA
-		pixelArray : Pointer to memory region where pixels needs to be copied.
-	Returns : int, -1 if error 0 if successful
+/**
+ * @brief encodes blurhash from rgb image bytes to buffer.
+ * @param xComponents range [1, 9]
+ * @param yComponents range [1, 9]
+ * @param width image width pixels
+ * @param height image height pixels
+ * @param rgb [3][width][height]
+ * @param buffer must >= `BLURHASH_ENCODE_BUFSZ`
+ * @return success is `0`, print others by `blurhash_perror`
 */
-int blurhash_decode2(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t * pixelArray);
+blurhash_error_t blurhash_encode(int xComponents, int yComponents, int width, int height, const uint8_t *rgb, char* buffer);
 
-int blurhash_decode_file(const char* hash, int width, int height, int punch, int nChannels, const char *filename);
 
-/*
-	blurhash_is_valid : Checks if the Blurhash is valid or not.
-	Parameters :
-		blurhash : A string representing the blurhash
-	Returns : bool (true if it is a valid blurhash, else false)
+/**
+ * @brief decodes the blurhash and copies the pixels to buffer.
+ * @param blurhash a string representing the blurhash to be decoded
+ * @param width of the resulting image
+ * @param height of the resulting image
+ * @param punch the factor to improve the contrast, default = 1
+ * @param nChannels number of channels in the resulting image array, 3 = RGB, 4 = RGBA
+ * @param buffer must >= `BLURHASH_DECODE_BUFSZ`
+ * @return success is `0`, print others by `blurhash_perror`
+*/
+blurhash_error_t blurhash_decode(const char * blurhash, int width, int height, int punch, int nChannels, uint8_t* buffer);
+
+/**
+ * @brief decodes the blurhash into filename.
+ * @param blurhash a string representing the blurhash to be decoded
+ * @param width of the resulting image
+ * @param height of the resulting image
+ * @param punch the factor to improve the contrast, default = 1
+ * @param nChannels number of channels in the resulting image array, 3 = RGB, 4 = RGBA
+ * @param filename valid file path
+ * @param buffer must >= `BLURHASH_DECODE_BUFSZ`
+ * @return success is `0`, print others by `blurhash_perror`
+*/
+blurhash_error_t blurhash_decode_file(const char* blurhash, int width, int height, int punch, int nChannels, const char *filename, uint8_t* buffer);
+
+
+/**
+ * @brief checks if the blurhash is valid or not.
+ * @param blurhash astring representing the blurhash
+ * @return bool (`true` if it is a valid blurhash, else `false`)
 */
 bool blurhash_is_valid(const char * blurhash);
 
-// blurhash_create_pixel_array malloc size bytes uint8_t array.
-static inline pixel_array_t blurhash_create_pixel_array(int size) {
-	return (pixel_array_t)malloc(size * sizeof(uint8_t));
-}
-
-/*
-	blurhash_free_pixel_array : Frees the pixel array
-	Parameters :
-		pixelArray : Pixel array pointer which will be freed.
-	Returns : void (None)
+/**
+ * @brief call perror on error
+ * @param err the error
+ * @return the input parameter `err`
 */
-static inline void blurhash_free_pixel_array(pixel_array_t pixelArray) {
-	if (pixelArray) {
-		free(pixelArray);
-	}
+static inline blurhash_error_t blurhash_perror(blurhash_error_t err) {
+	#define blurhash_perror_case(n) case blurhash_error_##n: perror("blurhash_error_"#n)
+		if(err) switch(err) {
+			blurhash_perror_case(invalid_x_components); break;
+			blurhash_perror_case(invalid_y_components); break;
+			blurhash_perror_case(stbi_load); break;
+			blurhash_perror_case(invalid_hash); break;
+			blurhash_perror_case(invalid_decode_quantized_max_value); break;
+			blurhash_perror_case(invalid_decode_dc); break;
+			blurhash_perror_case(invalid_decode_ac); break;
+			blurhash_perror_case(stbi_write_png); break;
+			default: perror("blurhash"); break;
+		}
+	#undef blurhash_perror_case
+	return err;
 }
 
 #endif
