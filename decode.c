@@ -1,5 +1,5 @@
 /* decode.c
- * This file is part of the blurhash distribution (https://github.com/woltapp/blurhash).
+ * This file is part of the blurhash distribution (https://github.com/fumiama/blurhash).
  * Copyright (c) 2018 Wolt Enterprises and Copyright (c) 2025 Fumiama Minamoto.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -46,13 +46,13 @@ bool blurhash_is_valid(const char * blurhash) {
 	return true;
 }
 
-void decodeDC(int value, float * r, float * g, float * b) {
+static void decodeDC(int value, float * r, float * g, float * b) {
 	*r = blurhash_sRGBToLinear(value >> 16); 	// R-component
 	*g = blurhash_sRGBToLinear((value >> 8) & 255); // G-Component
 	*b = blurhash_sRGBToLinear(value & 255);	// B-Component
 }
 
-void decodeAC(int value, float maximumValue, float * r, float * g, float * b) {
+static void decodeAC(int value, float maximumValue, float * r, float * g, float * b) {
 	int quantR = (int)floorf(value / (19 * 19));
 	int quantG = (int)floorf(value / 19) % 19;
 	int quantB = (int)value % 19;

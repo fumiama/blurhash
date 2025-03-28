@@ -1,5 +1,5 @@
 /* encode.c
- * This file is part of the blurhash distribution (https://github.com/woltapp/blurhash).
+ * This file is part of the blurhash distribution (https://github.com/fumiama/blurhash).
  * Copyright (c) 2018 Wolt Enterprises and Copyright (c) 2025 Fumiama Minamoto.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
