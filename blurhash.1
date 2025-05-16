@@ -1,0 +1,59 @@
+.TH BLURHASH 1 "17 May 2025" "GNU" "User Commands"
+.SH NAME
+blurhash \- Encode and decode images using the BlurHash algorithm
+.SH SYNOPSIS
+.B blurhash
+[\fBe\fR | \fBd\fR] [\fB\-x\fR \fIx_components\fR] [\fB\-y\fR \fIy_components\fR] \fIinputfile\fR \fIoutputfile\fR
+.SH DESCRIPTION
+.LP
+\fBblurhash\fR is a command-line utility that encodes images into BlurHash strings and decodes BlurHash strings back into images. BlurHash is a compact representation of a placeholder for an image, useful for displaying blurred previews while the full image loads.
+.SH OPTIONS
+.sp 1
+.TP 0.5i
+\fBe\fR
+Encode the input image into a BlurHash string. This is the default operation.
+.TP 0.5i
+\fBd\fR
+Decode a BlurHash string into an image.
+.TP 0.5i
+\fB\-x\fR \fIx_components\fR
+Specify the number of components in the X direction (1 to 9). Default is 4.
+.TP 0.5i
+\fB\-y\fR \fIy_components\fR
+Specify the number of components in the Y direction (1 to 9). Default is 3.
+.TP 0.5i
+\fBinputfile\fR
+Path to the input file. For encoding, this should be an image file. For decoding, this should be a text file containing a BlurHash string.
+.TP 0.5i
+\fBoutputfile\fR
+Path to the output file. For encoding, this will contain the BlurHash string. For decoding, this will be the generated image file.
+.SH EXAMPLES
+.TP 0.5i
+Encode an image to a BlurHash string:
+.B
+blurhashe -x 4 -y 3 input.png output.txt
+.TP 0.5i
+Decode a BlurHash string to an image:
+.B
+blurhashd -x 4 -y 3 input.txt output.png
+.SH EXIT STATUS
+.TP 0.5i
+\fB0\fR
+Success.
+.TP 0.5i
+\fB1\fR
+General error (e.g., invalid parameters, file I/O errors).
+.SH SEE ALSO
+https://github.com/fumiama/blurhash
+.SH BUGS
+No known bugs at this time. Please report issues at the project's GitHub repository.
+.SH AUTHOR
+This manual page was contributed by Fumiama Minamoto.
+.SH COPYRIGHT
+Copyright \(co 2022-2025, Fumiama Minamoto
+.LP
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+.LP
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+.LP
+You should have received a copy of the GNU General Public License along with this program. If not, see http://www.gnu.org/licenses/.
